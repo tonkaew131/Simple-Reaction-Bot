@@ -9,6 +9,10 @@
   "keywords": [],
   "author": "tonkaew131",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tonkaew131/Simple-Reaction-Bot.git"
+  },
   "dependencies": {
     "discord.js": "^12.5.3",
     "dotenv": "^10.0.0"
