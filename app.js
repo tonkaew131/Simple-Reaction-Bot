@@ -23,10 +23,10 @@ client.on('ready', () => {
 
     emojisConfigs = require('./emojis.json');
     console.log('Emojis config loaded!');
-    client.user.setActivity('🤔 au!help', { type: 'LISTENING' });
+    client.user.setActivity('🤔 !setup', { type: 'LISTENING' });
 });
 
-client.on('raw', data => {
+client.on('raw', async data => {
     let eventType = data['t'];
 
     if (eventType == 'MESSAGE_REACTION_ADD' || eventType == 'MESSAGE_REACTION_REMOVE') {
@@ -39,15 +39,16 @@ client.on('raw', data => {
         let guildData = emojisConfigs[guildID];
 
         let messageID = data['d']['message_id'];
-        if (messageID != guildData['message_id']) return;
+        if (!messageID in guildData) return;
 
-        if (!data['d']['emoji']['name'] in guildData['emojis']) return;
-        let roleID = guildData['emojis'][data['d']['emoji']['name']];
+        let emoteName = data['d']['emoji']['name'];
+        if (!emoteName in guildData[messageID]['emojis']) return;
+        let roleID = guildData[messageID]['emojis'][emoteName];
 
         let role = guild.roles.cache.get(roleID);
         if (role == undefined) return;
 
-        let member = guild.members.cache.get(data['d']['user_id']);
+        let member = await guild.members.fetch(data['d']['user_id']);
         if (member == undefined) return;
 
         let addRole = eventType == 'MESSAGE_REACTION_ADD' ? true : false;
@@ -58,6 +59,51 @@ client.on('raw', data => {
 
         member.roles.remove(role);
         return;
+    }
+});
+
+client.on('message', async message => {
+    if (message.author.bot) return;
+
+    const prefix = '!';
+    const args = message.content.slice(prefix.length).trim().split(/ +/g);
+    const command = args.shift().toLowerCase();
+
+    if (command == 'setup') {
+        if (message.member.hasPermission('ADMINISTRATOR') == false) {
+            return message.channel.send('You don\'t have `ADMINISTRATOR` permission!');
+        }
+
+        let guildID = message.guild.id;
+        if (!guildID in emojisConfigs) {
+            return message.channel.send('This server isn\'t config!');
+        }
+
+        for (let key in emojisConfigs[guildID]) {
+            let messageData = emojisConfigs[guildID][key];
+
+            let reactedChannel = message.guild.channels.cache.get(messageData['channel_id']);
+            if (reactedChannel == undefined) return message.channel.send(`Invalid channel ID! \`${messageData['channel_id']}\``);
+
+            let reactedMessage = await reactedChannel.messages.fetch(key);
+            if (reactedMessage == undefined) return message.channel.send(`Invalid message ID! \`${key}\``);
+
+            for (let emoji in messageData['emojis']) {
+                let reactedEmoji = message.guild.emojis.cache.find(e => e.name == emoji);
+                if (reactedEmoji == undefined) {
+                    reactedEmoji = emoji;
+                }
+
+                try {
+                    reactedMessage.react(reactedEmoji);
+                } catch (error) {
+                    console.log(error);
+                    message.channel.send(`Failed to react ${reactedEmoji}`);
+                }
+            }
+        }
+
+        return message.channel.send('All channels/messages setup');
     }
 });
 

@@ -1,0 +1,17 @@
+{
+    "guild_id1": {
+        "message_id1": {
+            "channel_id": "channel_id1",
+            "emojis": {
+                "❤️": "role_id1",
+                "emojisName": "role_id2"
+            }
+        },
+        "message_id2": {
+            "channel_id": "channel_id2",
+            "emojis": {
+                "🤔": "role_id1"
+            }
+        }
+    }
+}
